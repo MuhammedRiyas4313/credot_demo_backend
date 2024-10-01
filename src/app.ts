@@ -80,7 +80,7 @@ app.use(express.static(path.join(process.cwd(), "public")));
  * v1 Router
  */
 
-app.use("/v1", v1Router);
+app.use("/v1/api", v1Router);
 
 /**
  * 404 error handler

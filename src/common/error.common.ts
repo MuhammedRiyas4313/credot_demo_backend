@@ -15,9 +15,10 @@ export const ERROR = {
     CAN_NOT_FOUND: "Can't find User account.",
   },
   BRAND: {
-    EXIST: "Brand in this name is already exists.",
-    NOT_FOUND: "Can't find the Brand.",
-    INVALID_ID: "Brand id is not valid",
+    EXIST: "Brand in this name is already exists!",
+    EXIST_WITH_PRIORITY: "Brand with this priority is already exists!",
+    NOT_FOUND: "Brand not found!",
+    INVALID_ID: "Brand id is not valid!",
   },
   CATEGORY: {
     EXIST: "Category in this name is already exists.",
@@ -29,6 +30,7 @@ export const ERROR = {
     EXIST_SKU_CODE: "Product with this SKU Code is already exists.",
     NOT_FOUND: "Can't find the Product.",
     INVALID_ID: "Product id is not valid",
+    MRP_GT_PRICE: "Product price is greater than MRP!",
   },
   CART: {
     NO_ITEMS_IN_CART_FOR_ORDER: "Cart is empty, cannot place the order",

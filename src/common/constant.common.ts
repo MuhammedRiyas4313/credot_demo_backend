@@ -21,3 +21,9 @@ export const COUPON_STATUS = {
   INACTIVE: "INACTIVE",
 } as const;
 export type COUPON_STATUS_TYPE = keyof typeof COUPON_STATUS;
+
+export const SORT_ORDER = {
+  ASCE: "asce",
+  DESC: "desc",
+} as const;
+export type SORT_ORDER_TYPE = keyof typeof SORT_ORDER;
