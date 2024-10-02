@@ -27,3 +27,9 @@ export const SORT_ORDER = {
   DESC: "desc",
 } as const;
 export type SORT_ORDER_TYPE = keyof typeof SORT_ORDER;
+
+export const PRODUCT_STATUS = {
+  AVAILABLE: "AVAILABLE",
+  UN_AVAILABLE: "UN_AVAILABLE",
+} as const;
+export type PRODUCT_STATUS_TYPE = keyof typeof PRODUCT_STATUS;

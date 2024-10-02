@@ -1,8 +1,15 @@
 export const MESSAGE = {
+  CART: {
+    ITEM_ADDED: "Item added to cart successfully.",
+    ITEM_REMOVED: "Item removed from cart successfully.",
+    ITEM_UPDATED: "Cart item updated successfully.",
+    CART_CLEARED: "All items removed from the cart.",
+    CART_VIEWED: "Here is your current cart.",
+  },
   ORDER: {
     CREATED: "Thank you for your order! We've received it and it's being processed.",
     CANCELED: "Order cancellation confirmed. We've processed your request.",
-    REMOVED: "Order removed successfully.",
+    REMOVED: "Order deleted successfully.",
     GOTBYID: "Order by id",
     UPDATED: "Order updated Successfully.",
     ALLORDERS: "Order List",
@@ -10,24 +17,26 @@ export const MESSAGE = {
   USER: {
     CREATED: "User added Successfully.",
     UPDATED: "User updated Successfully.",
-    LOGGED_IN: "LogIn Successfully",
+    STATUS_UPDATED: "User status updated Successfully.",
+    LOGGED_IN: "Login Successful",
     GOTBYID: "User by id",
     GETCOUNT: "User Count",
     ALLUSERS: "Users List",
+    REMOVED: "User deleted successfully.",
   },
   BRAND: {
     CREATED: "Brand added successfully!.",
     UPDATED: "Brand updated Successfully .",
     GOTBYID: "Brand by id",
     ALLBRANDS: "Brands List",
-    REMOVED: "Brand removed successfully.",
+    REMOVED: "Brand deleted successfully.",
   },
   CATEGORY: {
     CREATED: "Category added Successfully.",
     UPDATED: "Category updated Successfully.",
-    GOTBYID: "Category by id",
+    GOTBYID: "Category by user id",
     ALLCATEGORY: "Categories List",
-    REMOVED: "Category removed successfully.",
+    REMOVED: "Category deleted successfully.",
   },
   PRODUCT: {
     CREATED: "Product added Successfully.",
@@ -35,7 +44,7 @@ export const MESSAGE = {
     GOTBYID: "Product by id",
     GOTBYSKU_CODE: "Product by SKU Code",
     ALLPRODUCTS: "Products List",
-    REMOVED: "Product removed successfully.",
+    REMOVED: "Product deleted successfully.",
   },
 } as const;
 export type MESSAGE_TYPE = keyof typeof MESSAGE;

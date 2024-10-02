@@ -1,4 +1,4 @@
-import { SORT_ORDER } from "common/constant.common";
+import { PRODUCT_STATUS } from "common/constant.common";
 import { ERROR } from "common/error.common";
 import { MESSAGE } from "common/messages.common";
 import { NextFunction, Request, Response } from "express";
@@ -25,6 +25,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       price,
       mrp,
       variants,
+      maxItemsPerOrder,
       metaTitle, //for SEO purpose
       metaDescription, //for SEO purpose
     } = req.body;
@@ -40,11 +41,6 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       Price: price,
       MRP: mrp,
     };
-
-    //either variants or image gallery required.
-    if (!variants?.length && !imagesArr?.length) {
-      requiredFields["Images"] = undefined;
-    }
 
     //validating required fields
     verifyRequiredFields(requiredFields);
@@ -141,6 +137,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       newproductObj.imagesArr = imagesArr;
     }
 
+    //writing file to /public/uploads folder
     thumbnail = await storeFileAndReturnNameBase64(thumbnail);
 
     if (thumbnail) {
@@ -155,6 +152,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
   }
 };
 
+/* For admin */
 export const getProducts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { search } = req.query;
@@ -163,7 +161,7 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
     let matchObj: Record<string, any> = { isDeleted: false };
     let sortObj: Record<string, any> = { createdAt: -1 };
 
-    //search for categories
+    //search for products
     if (search && typeof search === "string") {
       matchObj.$or = [
         { name: { $regex: new RegExp(createFlexibleRegex(search), "i") } },
@@ -212,6 +210,108 @@ export const getProductById = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+/* For Users */
+export const getProductsForUsers = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { search } = req.query;
+
+    //filtered soft deleted products
+    let matchObj: Record<string, any> = { isDeleted: false };
+    let sortObj: Record<string, any> = { createdAt: -1 };
+
+    //search for products
+    if (search && typeof search === "string") {
+      matchObj.$or = [
+        { name: { $regex: new RegExp(createFlexibleRegex(search), "i") } },
+        { sku: { $regex: new RegExp(createFlexibleRegex(search), "i") } },
+        { brandName: { $regex: new RegExp(createFlexibleRegex(search), "i") } },
+        { categoryName: { $regex: new RegExp(createFlexibleRegex(search), "i") } },
+      ];
+      req.query.pageIndex = "0";
+      req.query.pageSize = "10";
+    }
+
+    let pipeline: PipelineStage[] = [
+      {
+        $match: matchObj, // Apply your initial match condition here
+      },
+      {
+        $unwind: {
+          path: "$variants",
+          preserveNullAndEmptyArrays: true, // Keep documents without variants
+        },
+      },
+      {
+        $unwind: {
+          path: "$variants.subvariants",
+          preserveNullAndEmptyArrays: true, // Keep documents without subvariants
+        },
+      },
+      {
+        $addFields: {
+          // Image logic: if variants exist, use variant.image, else use thumbnail
+          image: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If variants array size > 0
+              "$variants.image", // Use variant image
+              "$thumbnail", // Else use thumbnail
+            ],
+          },
+
+          // Price logic: if subvariants exist, use subvariant price, else variant price, else main price
+          price: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If variants array size > 0
+              {
+                $cond: [
+                  { $gt: [{ $size: "$variants.subvariants" }, 0] }, // If subvariants exist
+                  "$variants.subvariants.price", // Use subvariant price
+                  "$variants.price", // Else use variant price
+                ],
+              },
+              "$price", // Else use main price
+            ],
+          },
+
+          // Quantity logic: if subvariants exist, use subvariant quantity, else variant quantity, else main quantity
+          quantity: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If variants array size > 0
+              {
+                $cond: [
+                  { $gt: [{ $size: "$variants.subvariants" }, 0] }, // If subvariants exist
+                  "$variants.subvariants.quantity", // Use subvariant quantity
+                  "$variants.quantity", // Else use variant quantity
+                ],
+              },
+              "$quantity", // Else use main product quantity
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          status: {
+            $cond: [{ $gt: ["$quantity", 0] }, PRODUCT_STATUS.AVAILABLE, PRODUCT_STATUS.UN_AVAILABLE],
+          },
+        },
+      },
+      {
+        $sort: sortObj, // Apply sorting condition
+      },
+    ];
+
+    //get paginated data and total document count
+    const paginatedData = await paginateAggregate(Product, pipeline, req.query);
+
+    res
+      .status(200)
+      .json({ message: MESSAGE.PRODUCT.ALLPRODUCTS, data: paginatedData.data, total: paginatedData.total });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
@@ -243,11 +343,6 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       Price: price,
       MRP: mrp,
     };
-
-    //either variants or image gallery required.
-    if (!variants?.length && !imagesArr?.length) {
-      requiredFields["Images"] = undefined;
-    }
 
     //validating required fields
     verifyRequiredFields(requiredFields);
@@ -355,6 +450,32 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     }
 
     await Product.findByIdAndUpdate(id, { $set: updateObj }).exec();
+
+    res.status(200).json({ message: MESSAGE.PRODUCT.UPDATED });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProductIsBestSeller = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const { isBestSeller } = req.body;
+
+    const product = await Product.findOne({ _id: new Types.ObjectId(), isDeleted: false }).lean().exec();
+
+    if (!product) {
+      throw new Error(ERROR.PRODUCT.NOT_FOUND);
+    }
+
+    //set the boolean in the body to isBestSeller.
+    await Product.findByIdAndUpdate(id, { $set: { isBestSeller: isBestSeller } }).exec();
+
+    //if isBestSeller is true then update the old one as the false, to keep a single best seller.
+    if (isBestSeller) {
+      await Product.updateOne({ isBestSeller: true }, { $set: { isBestSeller: false } });
+    }
 
     res.status(200).json({ message: MESSAGE.PRODUCT.UPDATED });
   } catch (error) {

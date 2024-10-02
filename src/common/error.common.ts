@@ -13,6 +13,7 @@ export const ERROR = {
     NOT_FOUND: "Can't find your account. Please check your credentials or create a new account.",
     INVALID_USER_ID: "User id is not valid.",
     CAN_NOT_FOUND: "Can't find User account.",
+    ACCOUNT_BLOCKED: "Your account has been blocked. Please contact support for further assistance.",
   },
   BRAND: {
     EXIST: "Brand in this name is already exists!",
@@ -31,9 +32,20 @@ export const ERROR = {
     NOT_FOUND: "Can't find the Product.",
     INVALID_ID: "Product id is not valid",
     MRP_GT_PRICE: "Product price is greater than MRP!",
+    VARIANT_NOT_FOUND: "Product variant is currently unavailable! ",
+    OUT_OF_STOCK: "Product is currently out of stock!",
+    MAX_ITEM_COUNT: (n: number) => `You can buy only up to ${n} unit(s) of this product`,
   },
   CART: {
     NO_ITEMS_IN_CART_FOR_ORDER: "Cart is empty, cannot place the order",
+  },
+  STATUS: {
+    NOT_DEFINED: "Invalid status value. Please provide a valid status for the user.",
+  },
+  TOKEN: {
+    INVALID: "Invalid Token!",
+    TRY_AGAIN: "Please Login And Try Again",
+    FORBIDDEN: "forbidden!",
   },
 } as const;
 export type ERROR_TYPE = keyof typeof ERROR;

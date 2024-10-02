@@ -9,8 +9,7 @@ export const CONFIG = parseEnv(process.env, {
   PORT: port().default(3000),
   MONGOURI: z.string(),
   JWT_ACCESS_TOKEN_SECRET: z.string(),
+  JWT_REFRESH_TOKEN_SECRET: z.string(),
 });
 
-export const API_PATHS = [
-  `./src/v1/routes/user.routes.ts`,
-];
+export const API_PATHS = [`./src/v1/routes/user.routes.ts`];
