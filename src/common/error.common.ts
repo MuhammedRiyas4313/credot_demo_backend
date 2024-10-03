@@ -7,6 +7,9 @@ export const ERROR = {
     NOT_FOUND: "Role is not defined.",
     INSUFFICIENT_PERMISSION: "403 Forbidden: Insufficient permissions. Your role lacks the required scope.",
   },
+  REMARK: {
+    REQUIRED: "Remark is required!",
+  },
   USER: {
     INVALID_CREDENTIAL: "Invalid credential.",
     EMAIL_BEING_USED: "This email is already being used.",
@@ -21,6 +24,9 @@ export const ERROR = {
     NOT_FOUND: "Brand not found!",
     INVALID_ID: "Brand id is not valid!",
   },
+  ADDRESS: {
+    NOT_FOUND: "Address not found!",
+  },
   CATEGORY: {
     EXIST: "Category in this name is already exists.",
     NOT_FOUND: "Can't find the Category.",
@@ -34,13 +40,14 @@ export const ERROR = {
     MRP_GT_PRICE: "Product price is greater than MRP!",
     VARIANT_NOT_FOUND: "Product variant is currently unavailable! ",
     OUT_OF_STOCK: "Product is currently out of stock!",
+    PRODUCT_OUT_OF_STOCK: (productName: string) => `${productName} is currently out of stock!`,
     MAX_ITEM_COUNT: (n: number) => `You can buy only up to ${n} unit(s) of this product`,
   },
   CART: {
     NO_ITEMS_IN_CART_FOR_ORDER: "Cart is empty, cannot place the order",
   },
   STATUS: {
-    NOT_DEFINED: "Invalid status value. Please provide a valid status for the user.",
+    NOT_DEFINED: "Invalid status value. Please provide a valid status.",
   },
   TOKEN: {
     INVALID: "Invalid Token!",

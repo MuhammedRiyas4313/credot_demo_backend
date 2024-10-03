@@ -1,4 +1,11 @@
 export const MESSAGE = {
+  ADDRESS: {
+    CREATED: "Address added successfully!.",
+    UPDATED: "Address updated Successfully .",
+    GOTBYID: "Address by id",
+    ADDRESSES: "Addresss List",
+    REMOVED: "Address deleted successfully.",
+  },
   CART: {
     ITEM_ADDED: "Item added to cart successfully.",
     ITEM_REMOVED: "Item removed from cart successfully.",
@@ -12,6 +19,7 @@ export const MESSAGE = {
     REMOVED: "Order deleted successfully.",
     GOTBYID: "Order by id",
     UPDATED: "Order updated Successfully.",
+    STATUS_UPDATED: "Order status updated Successfully.",
     ALLORDERS: "Order List",
   },
   USER: {

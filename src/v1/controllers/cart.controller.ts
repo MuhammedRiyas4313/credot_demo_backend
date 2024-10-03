@@ -100,16 +100,19 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
         }
       } else {
         // Item doesn't exist in the cart, add a new item
-        userCart.itemsArr.push({
-          sku,
-          price,
-          mrp,
-          quantity,
-          total: itemTotal,
-          variantId,
-          subvariantId,
-          createdAt: new Date(),
-        });
+        userCart.itemsArr = [
+          {
+            sku,
+            price,
+            mrp,
+            quantity,
+            total: itemTotal,
+            variantId,
+            subvariantId,
+            createdAt: new Date(),
+          },
+          ...userCart.itemsArr,
+        ];
         response.message = MESSAGE.CART.ITEM_ADDED;
       }
 

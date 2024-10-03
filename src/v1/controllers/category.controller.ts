@@ -155,7 +155,7 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
   }
 };
 
-export const deletecategoryById = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 

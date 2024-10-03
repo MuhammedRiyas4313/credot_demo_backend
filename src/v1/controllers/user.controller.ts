@@ -1,4 +1,4 @@
-import { USER_STATUS } from "common/constant.common";
+import { ROLES, USER_STATUS } from "common/constant.common";
 import { ERROR } from "common/error.common";
 import { MESSAGE } from "common/messages.common";
 import { NextFunction, Request, Response } from "express";
@@ -11,7 +11,7 @@ import { paginateAggregate } from "utils/paginateAggregate";
 import { createFlexibleRegex } from "utils/regex";
 
 /* user self registration */
-export const createUser = async (req: Request, res: Response, next: NextFunction) => {
+export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let { name, email, password } = req.body;
 
@@ -43,6 +43,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
       name,
       email,
       password,
+      role: ROLES.CUSTOMER,
     };
 
     await User.create(newuserObj);
@@ -54,7 +55,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
 };
 
 /* User login */
-export const userLogin = async (req: Request, res: Response, next: NextFunction) => {
+export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let { email, password } = req.body;
 
@@ -122,7 +123,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const getuserById = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -145,7 +146,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
 
     let { name, email } = req.body;
 
-    const user = await User.findById(id).lean().exec();
+    const user = await User.findById(id).exec();
 
     //exist check
     if (!user) {
@@ -173,12 +174,10 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
       throw new Error(ERROR.USER.EMAIL_BEING_USED);
     }
 
-    let updateObj: Partial<IUser> = {
-      name,
-      email,
-    };
+    user.name = name;
+    user.email = email;
 
-    await User.findByIdAndUpdate(id, { $set: updateObj }).exec();
+    await user.save();
 
     res.status(200).json({ message: MESSAGE.USER.UPDATED });
   } catch (error) {
@@ -192,7 +191,7 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
 
     let { status } = req.body;
 
-    const user = await User.findById(id).lean().exec();
+    const user = await User.findById(id).exec();
 
     //exist check
     if (!user) {
@@ -203,11 +202,9 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
       throw new Error(ERROR.STATUS.NOT_DEFINED);
     }
 
-    let updateObj: Partial<IUser> = {
-      status,
-    };
+    user.status = status;
 
-    await User.findByIdAndUpdate(id, { $set: updateObj }).exec();
+    await user.save();
 
     res.status(200).json({ message: MESSAGE.USER.STATUS_UPDATED });
   } catch (error) {
@@ -215,18 +212,20 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
   }
 };
 
-export const deleteuserById = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id).lean().exec();
+    const user = await User.findById(id).exec();
 
     //exist check
     if (!user) {
       throw new Error(ERROR.USER.NOT_FOUND);
     }
 
-    await User.findByIdAndUpdate(id, { $set: { isDeleted: true } });
+    user.isDeleted = true;
+
+    await user.save();
 
     res.status(200).json({ message: MESSAGE.USER.REMOVED });
   } catch (error) {

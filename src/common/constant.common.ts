@@ -33,3 +33,13 @@ export const PRODUCT_STATUS = {
   UN_AVAILABLE: "UN_AVAILABLE",
 } as const;
 export type PRODUCT_STATUS_TYPE = keyof typeof PRODUCT_STATUS;
+
+export const ORDER_STATUS = {
+  INITIATED: "INITIATED",
+  PROCESSING: "PROCESSING",
+  DELIVERED: "DELIVERED",
+  CANCELLED: "CANCELLED", //can cancel before delivered, if it is delivered then only can returned.
+  RETURNED_INITIATED: "RETURNED_INITIATED",
+  RETURNED_DELIVERED: "RETURNED_DELIVERED",
+} as const;
+export type ORDER_STATUS_TYPE = keyof typeof ORDER_STATUS;

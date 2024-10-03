@@ -191,7 +191,7 @@ export const updateBrand = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const deleteBrandById = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteBrand = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 

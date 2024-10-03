@@ -100,6 +100,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       description,
       price,
       mrp,
+      maxItemsPerOrder,
     };
 
     if (metaDescription) {
@@ -483,7 +484,7 @@ export const updateProductIsBestSeller = async (req: Request, res: Response, nex
   }
 };
 
-export const deleteProductById = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
