@@ -1,9 +1,16 @@
 export const MESSAGE = {
+  BANNER: {
+    CREATED: "Banner added successfully!.",
+    UPDATED: "Banner updated Successfully .",
+    GOT_ACTIVE: "Active banner",
+    ALL_BANNERS: "Banner List",
+    REMOVED: "Banner deleted successfully.",
+  },
   ADDRESS: {
     CREATED: "Address added successfully!.",
     UPDATED: "Address updated Successfully .",
     GOTBYID: "Address by id",
-    ADDRESSES: "Addresss List",
+    ADDRESSES: "Address List",
     REMOVED: "Address deleted successfully.",
   },
   CART: {

@@ -7,6 +7,10 @@ export const ERROR = {
     NOT_FOUND: "Role is not defined.",
     INSUFFICIENT_PERMISSION: "403 Forbidden: Insufficient permissions. Your role lacks the required scope.",
   },
+  BANNER: {
+    NO_ACTIVE_BANNERS: "Can't find any active banners!",
+    NOT_FOUND: "Banner not found!",
+  },
   REMARK: {
     REQUIRED: "Remark is required!",
   },
@@ -40,6 +44,7 @@ export const ERROR = {
     MRP_GT_PRICE: "Product price is greater than MRP!",
     VARIANT_NOT_FOUND: "Product variant is currently unavailable! ",
     OUT_OF_STOCK: "Product is currently out of stock!",
+    NO_MORE_STOCK: (stock: number) => `Product current stock is ${stock}!`,
     PRODUCT_OUT_OF_STOCK: (productName: string) => `${productName} is currently out of stock!`,
     MAX_ITEM_COUNT: (n: number) => `You can buy only up to ${n} unit(s) of this product`,
   },

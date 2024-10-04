@@ -16,11 +16,11 @@ export const COUPON_TYPE = {
 } as const;
 export type COUPON_TYPE_TYPE = keyof typeof COUPON_TYPE;
 
-export const COUPON_STATUS = {
+export const STATUS = {
   ACTIVE: "ACTIVE",
   INACTIVE: "INACTIVE",
 } as const;
-export type COUPON_STATUS_TYPE = keyof typeof COUPON_STATUS;
+export type STATUS_TYPE = keyof typeof STATUS;
 
 export const SORT_ORDER = {
   ASCE: "asce",

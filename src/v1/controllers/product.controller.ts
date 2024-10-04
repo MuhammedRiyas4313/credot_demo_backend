@@ -35,12 +35,16 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
       "SKU Code": sku,
       Category: categoryId,
       Brand: brandId,
-      Thumbnail: thumbnail,
       Specification: specification,
       Description: description,
+      "Maximum Item Per Order": maxItemsPerOrder,
       Price: price,
       MRP: mrp,
     };
+
+    if (!variants?.length) {
+      requiredFields.Thumbnail = thumbnail;
+    }
 
     //validating required fields
     verifyRequiredFields(requiredFields);
@@ -139,9 +143,9 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
     }
 
     //writing file to /public/uploads folder
-    thumbnail = await storeFileAndReturnNameBase64(thumbnail);
 
     if (thumbnail) {
+      thumbnail = await storeFileAndReturnNameBase64(thumbnail);
       newproductObj.thumbnail = thumbnail;
     }
 
@@ -242,12 +246,12 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
           preserveNullAndEmptyArrays: true, // Keep documents without variants
         },
       },
-      {
-        $unwind: {
-          path: "$variants.subvariants",
-          preserveNullAndEmptyArrays: true, // Keep documents without subvariants
-        },
-      },
+      // {
+      //   $unwind: {
+      //     path: "$variants.subvariants",
+      //     preserveNullAndEmptyArrays: true, // Keep documents without subvariants
+      //   },
+      // },
       {
         $addFields: {
           // Image logic: if variants exist, use variant.image, else use thumbnail
@@ -263,13 +267,7 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
           price: {
             $cond: [
               { $gt: [{ $size: "$variants" }, 0] }, // If variants array size > 0
-              {
-                $cond: [
-                  { $gt: [{ $size: "$variants.subvariants" }, 0] }, // If subvariants exist
-                  "$variants.subvariants.price", // Use subvariant price
-                  "$variants.price", // Else use variant price
-                ],
-              },
+              "$variants.price", // Else use variant price
               "$price", // Else use main price
             ],
           },
@@ -329,6 +327,8 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       price,
       mrp,
       variants,
+      maxItemsPerOrder,
+      isBestSeller,
       metaTitle, //for SEO purpose
       metaDescription, //for SEO purpose
     } = req.body;
@@ -338,12 +338,16 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       "SKU Code": sku,
       Category: categoryId,
       Brand: brandId,
-      Thumbnail: thumbnail,
       Specification: specification,
       Description: description,
+      "Maximum Item Per Order": maxItemsPerOrder,
       Price: price,
       MRP: mrp,
     };
+
+    if (!variants?.length) {
+      requiredFields.Thumbnail = thumbnail;
+    }
 
     //validating required fields
     verifyRequiredFields(requiredFields);
@@ -365,7 +369,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     //exist check for unique product name
     const existProductWithSkuCode = await Product.findOne({
       _id: { $ne: new Types.ObjectId(id) },
-      sku: { $regex: new RegExp(createFlexibleRegex(sku), "i") },
+      sku: sku,
     })
       .lean()
       .exec();
@@ -377,7 +381,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
     //exist check for unique product name
     const existProduct = await Product.findOne({
       _id: { $ne: new Types.ObjectId(id) },
-      name: { $regex: new RegExp(createFlexibleRegex(name), "i") },
+      name: name,
       brandId: new Types.ObjectId(brandId),
       categoryId: new Types.ObjectId(categoryId),
       isDeleted: false,
@@ -405,6 +409,8 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
       description,
       price,
       mrp,
+      maxItemsPerOrder,
+      isBestSeller,
     };
 
     if (metaDescription) {
@@ -423,7 +429,7 @@ export const updateProduct = async (req: Request, res: Response, next: NextFunct
         }
         if (el?.imagesArr?.length) {
           for (const img of el?.imagesArr) {
-            if (img?.image && el?.image.startsWith("data:")) {
+            if (img?.image && img?.image.startsWith("data:")) {
               img.image = await storeFileAndReturnNameBase64(img?.image);
             }
           }

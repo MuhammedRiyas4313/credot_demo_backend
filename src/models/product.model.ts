@@ -9,9 +9,9 @@ export interface IProduct {
   brandName: string;
   specification: string;
   description: string;
-  thumbnail: string;
+  thumbnail: string; //required
   maxItemsPerOrder: number;
-  imagesArr: { image: string }[];
+  imagesArr: { image: string }[]; //not required.
   price: number;
   mrp: number;
   quantity: number;

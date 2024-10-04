@@ -1,4 +1,4 @@
-import { COUPON_STATUS, COUPON_STATUS_TYPE, COUPON_TYPE_TYPE } from "common/constant.common";
+import { STATUS, STATUS_TYPE, COUPON_TYPE_TYPE } from "common/constant.common";
 import { model, Schema } from "mongoose";
 
 export interface ICoupon {
@@ -9,7 +9,7 @@ export interface ICoupon {
   minimumPurchaseAmount: number;
   applicableProducts: string[]; // List of product SKU codes the coupon applies to
   isApplicableForAll: boolean;
-  isActive: COUPON_STATUS_TYPE;
+  isActive: STATUS_TYPE;
 }
 
 const couponSchema = new Schema<ICoupon>(
@@ -21,7 +21,7 @@ const couponSchema = new Schema<ICoupon>(
     minimumPurchaseAmount: Number,
     applicableProducts: [String],
     isApplicableForAll: Boolean,
-    isActive: { type: String, default: COUPON_STATUS.ACTIVE },
+    isActive: { type: String, default: STATUS.ACTIVE },
   },
   {
     timestamps: true,

@@ -92,7 +92,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
     const { search } = req.query;
 
     //filtered soft deleted users
-    let matchObj: Record<string, any> = { isDeleted: false };
+    let matchObj: Record<string, any> = { isDeleted: false, role: ROLES.CUSTOMER };
     let sortObj: Record<string, any> = { createdAt: -1 };
 
     //search for users

@@ -134,7 +134,7 @@ export const updateBrand = async (req: Request, res: Response, next: NextFunctio
     //validating required fields
     verifyRequiredFields(requiredFields);
 
-    const brand = await Brand.findById(id).lean().exec();
+    const brand: any = await Brand.findById(id).exec();
 
     //exist check
     if (!brand) {
@@ -154,15 +154,7 @@ export const updateBrand = async (req: Request, res: Response, next: NextFunctio
       throw new Error(ERROR.BRAND.EXIST);
     }
 
-    if (logo && logo.startsWith("data:")) {
-      //check type base64 or filename with extension, if base 64 need updation
-      logo = await storeFileAndReturnNameBase64(logo);
-    }
-
-    let updateObj: Partial<IBrand> = {
-      name,
-      logo,
-    };
+    brand.name = name;
 
     if (priority) {
       //exist check for priority
@@ -180,10 +172,17 @@ export const updateBrand = async (req: Request, res: Response, next: NextFunctio
       if (existBrandWithPriority) {
         throw new Error(ERROR.BRAND.EXIST_WITH_PRIORITY);
       }
-      updateObj.priority = priority;
+      brand.priority = priority;
+    } else {
+      await Brand.findByIdAndUpdate(id, { $unset: { priority: 1 } }).exec();
     }
 
-    await Brand.findByIdAndUpdate(id, { $set: updateObj }).exec();
+    if (logo && logo.startsWith("data:")) {
+      //check type base64 or filename with extension, if base 64 need updation
+      brand.logo = await storeFileAndReturnNameBase64(logo);
+    }
+
+    await brand.save();
 
     res.status(200).json({ message: MESSAGE.BRAND.UPDATED });
   } catch (error) {
