@@ -20,7 +20,7 @@ import { authorizeJwt } from "middlewares/auth.middleware";
 
 const app = express.Router();
 
-app.use("/", authorizeJwt, indexRouter);
+app.use("/", indexRouter);
 
 app.use("/banner", authorizeJwt, bannerRouter);
 
