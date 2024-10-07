@@ -1,7 +1,7 @@
 import { model, Schema, Types } from "mongoose";
 
 export interface IProduct {
-  name: string;
+  name: string; //iPhone 12 Pro max
   sku: string;
   categoryId: Types.ObjectId;
   categoryName: string;
@@ -17,7 +17,7 @@ export interface IProduct {
   quantity: number;
   isBestSeller: boolean;
   variants: {
-    name: string; //iPhone 12 Pro max 256GB Deep Purple
+    name: string; //iPhone 12 Pro max Deep Purple
     title: string; //red, blue, green
     image: string;
     price: number;

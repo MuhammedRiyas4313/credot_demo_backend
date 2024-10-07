@@ -24,16 +24,16 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       throw new Error(ERROR.USER.INVALID_USER_ID);
     }
 
-    //only addressId from the req.body;
-    const { addressId } = req.body;
+    // //only addressId from the req.body;
+    // const { addressId } = req.body;
 
     //check the address exist or not
-    const address = await Address.findById(addressId).lean().exec();
+    // const address = await Address.findById(addressId).lean().exec();
 
     //address is mandatory
-    if (!address) {
-      throw new Error(ERROR.ADDRESS.NOT_FOUND);
-    }
+    // if (!address) {
+    //   throw new Error(ERROR.ADDRESS.NOT_FOUND);
+    // }
     // Fetch cart to place the order
     const userCart = await Cart.findOne({ userId: new Types.ObjectId(req.user.userId) }).exec();
 
@@ -103,7 +103,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       itemsArr: userCart.itemsArr,
       grandTotal: userCart.grandTotal,
       itemsCount: userCart.itemsCount,
-      addressId: new Types.ObjectId(address?._id),
+      // addressId: new Types.ObjectId(address?._id),
     };
 
     // Create the order
@@ -245,6 +245,183 @@ export const getOrdersForUsers = async (req: Request, res: Response, next: NextF
     let pipeline: PipelineStage[] = [
       {
         $match: matchObj,
+      },
+      {
+        $unwind: {
+          path: "$itemsArr", // Unwind the items array
+        },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "itemsArr.sku", // Match the SKU from itemsArr
+          foreignField: "sku", // Match against the product's SKU
+          let: {
+            variantId: "$itemsArr.variantId",
+            subvariantId: "$itemsArr.subvariantId",
+            cartQuantity: "$itemsArr.quantity",
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$isDeleted", false], // Ensure the product is not deleted
+                },
+              },
+            },
+            {
+              $addFields: {
+                availability: {
+                  $cond: [
+                    { $lte: ["$$cartQuantity", "$maxItemsPerOrder"] }, // Check if cartQuantity is within the limit
+                    {
+                      $cond: [
+                        { $gt: [{ $size: "$variants" }, 0] }, // Check if there are variants
+                        {
+                          $cond: [
+                            { $ne: ["$$subvariantId", null] }, // Check if subvariantId is provided
+                            {
+                              // Check if any subvariant matches the condition
+                              $gt: [
+                                {
+                                  $size: {
+                                    $filter: {
+                                      input: "$variants.subvariants",
+                                      as: "subvariant",
+                                      cond: {
+                                        $and: [
+                                          { $eq: ["$$subvariantId", "$$subvariant._id"] },
+                                          { $gt: ["$$subvariant.quantity", "$$cartQuantity"] },
+                                        ],
+                                      },
+                                    },
+                                  },
+                                },
+                                0,
+                              ],
+                            },
+                            {
+                              // If no subvariantId, check variants
+                              $gt: [
+                                {
+                                  $size: {
+                                    $filter: {
+                                      input: "$variants",
+                                      as: "variant",
+                                      cond: {
+                                        $gt: ["$$variant.quantity", "$$cartQuantity"],
+                                      },
+                                    },
+                                  },
+                                },
+                                0,
+                              ],
+                            },
+                          ],
+                        },
+                        {
+                          // No variants, check stock directly
+                          $gt: ["$quantity", "$$cartQuantity"],
+                        },
+                      ],
+                    },
+                    false, // If cartQuantity exceeds maxItemsPerOrder
+                  ],
+                },
+                image: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ne: ["$$variantId", null] }, // Check if variantId is not null
+                        { $gt: [{ $size: "$variants" }, 0] }, // Check if variants array has elements
+                      ],
+                    },
+                    {
+                      $let: {
+                        vars: {
+                          matchedVariant: {
+                            $arrayElemAt: [
+                              {
+                                $filter: {
+                                  input: "$variants",
+                                  as: "variant",
+                                  cond: { $eq: ["$$variant._id", "$$variantId"] }, // Match the variant by variantId
+                                },
+                              },
+                              0,
+                            ],
+                          },
+                        },
+                        in: {
+                          $arrayElemAt: ["$$matchedVariant.imagesArr.image", 0], // Get the first image of the matched variant
+                        },
+                      },
+                    },
+                    "$thumbnail", // Fallback: If no variant, use the root thumbnail
+                  ],
+                },
+                name: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ne: ["$$variantId", null] }, // Check if variantId is not null
+                        { $gt: [{ $size: "$variants" }, 0] }, // Check if variants array has elements
+                      ],
+                    },
+                    {
+                      $let: {
+                        vars: {
+                          matchedVariant: {
+                            $arrayElemAt: [
+                              {
+                                $filter: {
+                                  input: "$variants",
+                                  as: "variant",
+                                  cond: { $eq: ["$$variant._id", "$$variantId"] }, // Match the variant by variantId
+                                },
+                              },
+                              0,
+                            ],
+                          },
+                        },
+                        in: "$$matchedVariant.name",
+                      },
+                    },
+                    "$name", // Fallback: If no variant, use the root thumbnail
+                  ],
+                },
+              },
+            },
+          ],
+          as: "productObj", // Embed productObj into itemsArr
+        },
+      },
+      {
+        $unwind: {
+          path: "$productObj", // Unwind productObj (removes items without a matching productObj)
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          userId: { $first: "$userId" }, // Keep the userId field
+          itemsArr: {
+            $push: {
+              $mergeObjects: ["$itemsArr", { productObj: "$productObj" }], // Merge productObj into itemsArr, will overwritten with the current product data;
+            },
+          },
+          grandTotal: { $first: "$grandTotal" }, // Keep the grand total
+          itemsCount: { $first: "$itemsCount" }, // Keep the items count
+          status: {
+            $first: "$status",
+          },
+          remark: {
+            $first: "$remark",
+          },
+          createdAt: {
+            $first: "$createdAt",
+          },
+        },
       },
       {
         $sort: sortObj,
