@@ -1,4 +1,5 @@
 import express from "express";
+import { authorizeJwt } from "middlewares/auth.middleware";
 import {
   deleteUser,
   getUserById,
@@ -13,10 +14,10 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.get("/", getUsers);
-router.get("/:id", getUserById);
-router.put("/:id", updateUser);
-router.patch("/:id", updateUserStatus);
-router.delete("/:id", deleteUser);
+router.get("/", authorizeJwt, getUsers);
+router.get("/:id", authorizeJwt, getUserById);
+router.put("/:id", authorizeJwt, updateUser);
+router.patch("/:id", authorizeJwt, updateUserStatus);
+router.delete("/:id", authorizeJwt, deleteUser);
 
 export default router;

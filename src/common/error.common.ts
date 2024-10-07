@@ -50,6 +50,7 @@ export const ERROR = {
   },
   CART: {
     NO_ITEMS_IN_CART_FOR_ORDER: "Cart is empty, cannot place the order",
+    NOT_FOUND: "Can't find the Cart!.",
   },
   STATUS: {
     NOT_DEFINED: "Invalid status value. Please provide a valid status.",

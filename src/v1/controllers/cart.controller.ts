@@ -1,6 +1,7 @@
 import { ERROR } from "common/error.common";
 import { MESSAGE } from "common/messages.common";
 import { NextFunction, Request, Response } from "express";
+import { findIndex } from "lodash";
 import { Cart } from "models/cart.model";
 import { Product } from "models/product.model";
 import { Types } from "mongoose";
@@ -72,7 +73,18 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
 
     if (userCart) {
       // If the cart exists, check if the item is already in the cart
-      let itemIndex = userCart.itemsArr.findIndex((item) => item.sku === sku);
+      let itemIndex = userCart.itemsArr.findIndex((item) => {
+        let find = false;
+
+        if (variantId) {
+          find = item?.variantId?.toString() === variantId;
+        }
+        if (variantId && subvariantId) {
+          find = item?.variantId?.toString() === variantId && item?.subvariantId?.toString() === subvariantId;
+        }
+
+        return find;
+      });
 
       if (itemIndex > -1) {
         // Item exists in the cart
@@ -83,7 +95,7 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
         } else {
           //if increasing the product quantiy check maxItemsPerOrder limit
           if (userCart.itemsArr[itemIndex].quantity + quantity >= product.maxItemsPerOrder) {
-            response.message = ERROR.PRODUCT.MAX_ITEM_COUNT(product.maxItemsPerOrder);
+            throw new Error(ERROR.PRODUCT.MAX_ITEM_COUNT(product.maxItemsPerOrder));
           } else {
             //check the stock
             if (productVariant.quantity < userCart.itemsArr[itemIndex].quantity + quantity) {
@@ -99,6 +111,7 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
           }
         }
       } else {
+        //only product with quantity could add to cart
         // Item doesn't exist in the cart, add a new item
         userCart.itemsArr = [
           {
@@ -141,7 +154,13 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
 /* get cart by userId */
 export const getCartByUserId = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    // const { id } = req.params;
+
+    const id = req.user?.userObj?._id;
+
+    if (!id) {
+      throw new Error(ERROR.USER.INVALID_USER_ID);
+    }
 
     let cart = await Cart.aggregate([
       {
@@ -192,7 +211,7 @@ export const getCartByUserId = async (req: Request, res: Response, next: NextFun
                                       cond: {
                                         $and: [
                                           { $eq: ["$$subvariantId", "$$subvariant._id"] },
-                                          { $gte: ["$$subvariant.quantity", "$$cartQuantity"] },
+                                          { $gt: ["$$subvariant.quantity", "$$cartQuantity"] },
                                         ],
                                       },
                                     },
@@ -210,7 +229,7 @@ export const getCartByUserId = async (req: Request, res: Response, next: NextFun
                                       input: "$variants",
                                       as: "variant",
                                       cond: {
-                                        $gte: ["$$variant.quantity", "$$cartQuantity"],
+                                        $gt: ["$$variant.quantity", "$$cartQuantity"],
                                       },
                                     },
                                   },
@@ -222,72 +241,74 @@ export const getCartByUserId = async (req: Request, res: Response, next: NextFun
                         },
                         {
                           // No variants, check stock directly
-                          $gte: ["$quantity", "$$cartQuantity"],
+                          $gt: ["$quantity", "$$cartQuantity"],
                         },
                       ],
                     },
                     false, // If cartQuantity exceeds maxItemsPerOrder
                   ],
                 },
-                productInfoObj: {
-                  $cond: {
-                    if: { $ne: ["$$variantId", null] }, // Check if variantId is provided
-                    then: {
-                      $cond: {
-                        if: { $ne: ["$$subvariantId", null] }, // Check if subvariantId is provided
-                        then: {
-                          // Use subvariant image and price
-                          $let: {
-                            vars: {
-                              subvariant: {
-                                $arrayElemAt: [
-                                  {
-                                    $filter: {
-                                      input: "$variants.subvariants",
-                                      as: "subvariant",
-                                      cond: { $eq: ["$$subvariantId", "$$subvariant._id"] },
-                                    },
-                                  },
-                                  0,
-                                ],
+                image: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ne: ["$$variantId", null] }, // Check if variantId is not null
+                        { $gt: [{ $size: "$variants" }, 0] }, // Check if variants array has elements
+                      ],
+                    },
+                    {
+                      $let: {
+                        vars: {
+                          matchedVariant: {
+                            $arrayElemAt: [
+                              {
+                                $filter: {
+                                  input: "$variants",
+                                  as: "variant",
+                                  cond: { $eq: ["$$variant._id", "$$variantId"] }, // Match the variant by variantId
+                                },
                               },
-                            },
-                            in: {
-                              price: "$$subvariant.price",
-                            },
+                              0,
+                            ],
                           },
                         },
-                        else: {
-                          // Use variant image and price
-                          $let: {
-                            vars: {
-                              variant: {
-                                $arrayElemAt: [
-                                  {
-                                    $filter: {
-                                      input: "$variants",
-                                      as: "variant",
-                                      cond: { $eq: ["$$variantId", "$$variant._id"] },
-                                    },
-                                  },
-                                  0,
-                                ],
-                              },
-                            },
-                            in: {
-                              image: "$$variant.image",
-                              price: "$$variant.price",
-                            },
-                          },
+                        in: {
+                          $arrayElemAt: ["$$matchedVariant.imagesArr.image", 0], // Get the first image of the matched variant
                         },
                       },
                     },
-                    else: {
-                      // No variantId, use product image and price
-                      image: { $arrayElemAt: ["$thumbnail", 0] }, // Assuming the main product image is in imagesArr
-                      price: "$price",
+                    "$thumbnail", // Fallback: If no variant, use the root thumbnail
+                  ],
+                },
+                name: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ne: ["$$variantId", null] }, // Check if variantId is not null
+                        { $gt: [{ $size: "$variants" }, 0] }, // Check if variants array has elements
+                      ],
                     },
-                  },
+                    {
+                      $let: {
+                        vars: {
+                          matchedVariant: {
+                            $arrayElemAt: [
+                              {
+                                $filter: {
+                                  input: "$variants",
+                                  as: "variant",
+                                  cond: { $eq: ["$$variant._id", "$$variantId"] }, // Match the variant by variantId
+                                },
+                              },
+                              0,
+                            ],
+                          },
+                        },
+                        in: "$$matchedVariant.name",
+                      },
+                    },
+                    "$name", // Fallback: If no variant, use the root thumbnail
+                  ],
                 },
               },
             },
@@ -317,7 +338,44 @@ export const getCartByUserId = async (req: Request, res: Response, next: NextFun
 
     cart = cart?.length ? cart[0] : null;
 
-    res.status(200).json({ message: MESSAGE.CATEGORY.GOTBYID, data: cart });
+    res.status(200).json({ message: MESSAGE.CART.CART_VIEWED, data: cart });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteCartItem = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    //cart item id
+    const { id } = req.params;
+
+    const userId = req.user?.userObj?._id;
+
+    if (!id) {
+      throw new Error(ERROR.USER.INVALID_USER_ID);
+    }
+
+    const userCart = await Cart.findOne({ userId: new Types.ObjectId(userId) }).exec();
+
+    if (!userCart) {
+      throw new Error(ERROR.CART.NOT_FOUND);
+    }
+
+    let itemsArr = [...userCart.itemsArr];
+
+    let currentItemIndex = itemsArr?.findIndex((el: any) => el._id?.toString() === id);
+
+    if (currentItemIndex !== -1) {
+      itemsArr?.splice(currentItemIndex, 1);
+    }
+
+    userCart.itemsArr = itemsArr;
+    userCart.grandTotal = userCart.itemsArr.reduce((acc, item) => acc + item.total, 0);
+    userCart.itemsCount = userCart.itemsArr.length;
+
+    await userCart.save();
+
+    res.status(200).json({ message: MESSAGE.CART.ITEM_REMOVED });
   } catch (error) {
     next(error);
   }

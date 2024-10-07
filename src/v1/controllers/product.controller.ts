@@ -198,6 +198,7 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+/* For admin */
 export const getProductById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
@@ -253,12 +254,79 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
       //   },
       // },
       {
+        $lookup: {
+          from: "carts", // Lookup from the Cart collection
+          localField: "sku", // The SKU of the product
+          foreignField: "itemsArr.sku", // SKU in the cart items array
+          as: "cart", // Name the result "cart"
+        },
+      },
+      {
+        $addFields: {
+          cart: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$cart",
+                  as: "cartItem",
+                  cond: { $eq: ["$$cartItem.userId", req.user?.userId] }, // Match the userId with the current user
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          inCart: {
+            $cond: {
+              if: {
+                $and: [
+                  { $and: [{ $ne: ["$cart", null] }, { $gt: [{ $size: { $ifNull: ["$cart.itemsArr", []] } }, 0] }] }, // Ensure cart.itemsArr exists and has elements
+                  {
+                    $or: [
+                      {
+                        $in: [
+                          "$variants._id",
+                          { $map: { input: { $ifNull: ["$cart.itemsArr", []] }, as: "item", in: "$$item.variantId" } },
+                        ],
+                      }, // Check if variantId exists in cart
+                      {
+                        $in: [
+                          "$sku",
+                          { $map: { input: { $ifNull: ["$cart.itemsArr", []] }, as: "item", in: "$$item.sku" } },
+                        ],
+                      }, // Check if the main product SKU is in the cart
+                    ],
+                  },
+                ],
+              },
+              then: true, // If variantId or SKU matches, set inCart to true
+              else: false, // Otherwise, set it to false
+            },
+          },
+        },
+      },
+      {
         $addFields: {
           // Image logic: if variants exist, use variant.image, else use thumbnail
           image: {
             $cond: [
-              { $gt: [{ $size: "$variants" }, 0] }, // If variants array size > 0
-              "$variants.image", // Use variant image
+              { $and: [{ $ne: ["$variants", null] }, { $gt: [{ $size: "$variants.imagesArr" }, 0] }] }, // If variants array size > 0
+              {
+                $reduce: {
+                  input: "$variants.imagesArr",
+                  initialValue: null,
+                  in: {
+                    $cond: [
+                      { $eq: ["$$value", null] }, // If initialValue is null, return the image
+                      "$$this.image", // Access the image property of the current element
+                      "$$value", // Keep the value if it's not null
+                    ],
+                  },
+                },
+              },
               "$thumbnail", // Else use thumbnail
             ],
           },
@@ -266,28 +334,147 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
           // Price logic: if subvariants exist, use subvariant price, else variant price, else main price
           price: {
             $cond: [
-              { $gt: [{ $size: "$variants" }, 0] }, // If variants array size > 0
-              "$variants.price", // Else use variant price
-              "$price", // Else use main price
+              {
+                $and: [
+                  { $ne: ["$variants", null] },
+                  { $ne: ["$variants.subvariants", null] },
+                  { $gt: [{ $size: "$variants.subvariants" }, 0] },
+                ],
+              },
+              // If there are subvariants, use the price of the first subvariant
+              {
+                $reduce: {
+                  input: "$variants.subvariants",
+                  initialValue: null,
+                  in: {
+                    $cond: [
+                      { $eq: ["$$value", null] }, // If initialValue is null, return the image
+                      "$$this.price", // Access the image property of the current element
+                      "$$value", // Keep the value if it's not null
+                    ],
+                  },
+                },
+              },
+              {
+                $cond: [
+                  { $and: [{ $ne: ["$variants", null] }, { $ne: ["$variants.price", null] }] },
+                  // Else if there are no subvariants, use the variant price
+                  "$variants.price",
+                  // Else use the main price
+                  "$price",
+                ],
+              },
+            ],
+          },
+
+          // mrp logic: if subvariants exist, use subvariant mrp, else variant mrp, else main mrp
+          mrp: {
+            $cond: [
+              {
+                $and: [
+                  { $ne: ["$variants", null] },
+                  { $ne: ["$variants.subvariants", null] },
+                  { $gt: [{ $size: "$variants.subvariants" }, 0] },
+                ],
+              },
+              // If there are subvariants, use the MRP of the first subvariant
+              {
+                $reduce: {
+                  input: "$variants.subvariants",
+                  initialValue: null,
+                  in: {
+                    $cond: [
+                      { $eq: ["$$value", null] }, // If initialValue is null, return the image
+                      "$$this.mrp", // Access the image property of the current element
+                      "$$value", // Keep the value if it's not null
+                    ],
+                  },
+                },
+              },
+              {
+                $cond: [
+                  { $and: [{ $ne: ["$variants", null] }, { $ne: ["$variants.mrp", null] }] },
+                  // Else if there are no subvariants, use the variant MRP
+                  "$variants.mrp",
+                  // Else use the main MRP
+                  "$mrp",
+                ],
+              },
+            ],
+          },
+
+          name: {
+            $cond: [
+              { $and: [{ $ne: ["$variants", null] }, { $ne: ["$variants.name", null] }] }, // If variants array size > 0
+              "$variants.name", // Else use variant price
+              "$name", // Else use main price
             ],
           },
 
           // Quantity logic: if subvariants exist, use subvariant quantity, else variant quantity, else main quantity
           quantity: {
             $cond: [
-              { $gt: [{ $size: "$variants" }, 0] }, // If variants array size > 0
               {
-                $cond: [
-                  { $gt: [{ $size: "$variants.subvariants" }, 0] }, // If subvariants exist
-                  "$variants.subvariants.quantity", // Use subvariant quantity
-                  "$variants.quantity", // Else use variant quantity
+                $and: [
+                  { $ne: ["$variants", null] },
+                  { $ne: ["$variants.subvariants", null] },
+                  { $gt: [{ $size: "$variants.subvariants" }, 0] },
                 ],
               },
-              "$quantity", // Else use main product quantity
+              // If there are subvariants, use the quantity of the largest subvariant quantity
+              {
+                $reduce: {
+                  input: "$variants.subvariants",
+                  initialValue: 0,
+                  in: { $cond: [{ $gt: ["$$this.quantity", "$$value"] }, "$$this.quantity", "$$value"] },
+                },
+              },
+              {
+                $cond: [
+                  { $and: [{ $ne: ["$variants", null] }, { $ne: ["$variants.quantity", null] }] },
+                  // Else if there are no subvariants, use the variant quantity
+                  "$variants.quantity",
+                  // Else use the main product quantity
+                  "$quantity",
+                ],
+              },
+            ],
+          },
+          subvariantId: {
+            $cond: [
+              {
+                $and: [
+                  { $ne: ["$variants", null] },
+                  { $ne: ["$variants.subvariants", null] },
+                  { $gt: [{ $size: "$variants.subvariants" }, 0] },
+                ],
+              },
+              // If there are subvariants, use the quantity of the largest subvariant quantity
+              { $arrayElemAt: ["$variants.subvariants", 0] },
+              {
+                $cond: [
+                  { $and: [{ $ne: ["$variants", null] }, { $ne: ["$variants.quantity", null] }] },
+                  // Else if there are no subvariants, use the variant quantity
+                  "$variants.quantity",
+                  // Else use the main product quantity
+                  "$quantity",
+                ],
+              },
             ],
           },
         },
       },
+      {
+        $addFields: {
+          subvariantId: {
+            $cond: [{ $ne: ["$subvariantId", null] }, "$subvariantId._id", null],
+          },
+          variantId: {
+            $cond: [{ $ne: ["$variants", null] }, "$variants._id", null],
+          },
+        },
+      },
+      //to show in product list availability
       {
         $addFields: {
           status: {
@@ -306,6 +493,153 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
     res
       .status(200)
       .json({ message: MESSAGE.PRODUCT.ALLPRODUCTS, data: paginatedData.data, total: paginatedData.total });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* For user  */
+export const getProductByIdForUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("GET PRODUCT BY ID FOR USER 1");
+    const { id } = req.params;
+
+    const existProduct = await Product.findById(id).lean().exec();
+
+    //exist check
+    if (!existProduct) {
+      throw new Error(ERROR.PRODUCT.NOT_FOUND);
+    }
+
+    let product = await Product.aggregate([
+      {
+        $match: {
+          _id: new Types.ObjectId(id),
+        },
+      },
+      {
+        $addFields: {
+          imagesArr: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              { $arrayElemAt: ["$variants.imagesArr", 0] }, // Use variants[0].imagesArr
+              "$imagesArr", // Otherwise, use root imagesArr
+            ],
+          },
+          specification: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              {
+                $cond: [
+                  { $gt: [{ $size: { $arrayElemAt: ["$variants.subvariants", 0] } }, 0] }, // If there are subvariants in variants[0]
+                  { $arrayElemAt: [{ $arrayElemAt: ["$variants.subvariants.specification", 0] }, 0] }, // Use subvariant[0].specification
+                  { $arrayElemAt: ["$variants.specification", 0] }, // Else, use variants[0].specification
+                ],
+              },
+              "$specification", // Else, use root specification
+            ],
+          },
+          description: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              {
+                $cond: [
+                  { $gt: [{ $size: { $arrayElemAt: ["$variants.subvariants", 0] } }, 0] }, // If there are subvariants in variants[0]
+                  { $arrayElemAt: [{ $arrayElemAt: ["$variants.subvariants.description", 0] }, 0] }, // Correctly accessing subvariant[0].description
+                  { $arrayElemAt: ["$variants.description", 0] }, // Else, use variants[0].description
+                ],
+              },
+              "$description", // Else, use root description
+            ],
+          },
+          name: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              { $arrayElemAt: ["$variants.name", 0] }, // Use variants[0].imagesArr
+              "$name", // Otherwise, use root imagesArr
+            ],
+          },
+          price: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              {
+                $cond: [
+                  { $gt: [{ $size: { $arrayElemAt: ["$variants.subvariants", 0] } }, 0] }, // If there are subvariants in variants[0]
+                  {
+                    $arrayElemAt: [
+                      {
+                        $arrayElemAt: ["$variants.subvariants.price", 0],
+                      },
+                      0,
+                    ],
+                  }, // Correctly accessing subvariant[0].description
+                  {
+                    $reduce: {
+                      input: "$variants",
+                      initialValue: null,
+                      in: {
+                        $cond: [
+                          { $eq: ["$$value", null] }, // If initialValue is null, return the image
+                          "$$this.price", // Access the image property of the current element
+                          "$$value", // Keep the value if it's not null
+                        ],
+                      },
+                    },
+                  }, // Else, use variants[0].price
+                ],
+              },
+              "$price", // Else, use root price
+            ],
+          },
+          mrp: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              {
+                $cond: [
+                  { $gt: [{ $size: { $arrayElemAt: ["$variants.subvariants", 0] } }, 0] }, // If there are subvariants in variants[0]
+                  {
+                    $arrayElemAt: [
+                      {
+                        $arrayElemAt: ["$variants.subvariants.mrp", 0],
+                      },
+                      0,
+                    ],
+                  }, // Correctly accessing subvariant[0].description
+                  {
+                    $arrayElemAt: ["$variants.mrp", 0],
+                  }, // Else, use variants[0].mrp
+                ],
+              },
+              "$mrp", // Else, use root mrp
+            ],
+          },
+          selectedVariant: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              { $arrayElemAt: ["$variants", 0] }, // Else, use variants[0].mrp
+              null,
+            ],
+          },
+          selectedSubVariant: {
+            $cond: [
+              { $gt: [{ $size: "$variants" }, 0] }, // If there are variants
+              {
+                $cond: [
+                  { $gt: [{ $size: { $arrayElemAt: ["$variants.subvariants", 0] } }, 0] }, // If there are subvariants in variants[0]
+                  { $arrayElemAt: [{ $arrayElemAt: ["$variants.subvariants", 0] }, 0] }, // Correctly accessing subvariant[0].description
+                  null, // Else, use variants[0].mrp
+                ],
+              }, // Else, use variants[0].mrp
+              null, // Else, use root mrp
+            ],
+          },
+        },
+      },
+    ]).exec();
+
+    product = product?.length > 0 ? product[0] : null;
+
+    res.status(200).json({ message: MESSAGE.PRODUCT.GOTBYID, data: product });
   } catch (error) {
     next(error);
   }
@@ -478,11 +812,6 @@ export const updateProductIsBestSeller = async (req: Request, res: Response, nex
 
     //set the boolean in the body to isBestSeller.
     await Product.findByIdAndUpdate(id, { $set: { isBestSeller: isBestSeller } }).exec();
-
-    //if isBestSeller is true then update the old one as the false, to keep a single best seller.
-    if (isBestSeller) {
-      await Product.updateOne({ isBestSeller: true }, { $set: { isBestSeller: false } });
-    }
 
     res.status(200).json({ message: MESSAGE.PRODUCT.UPDATED });
   } catch (error) {

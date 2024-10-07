@@ -9,7 +9,7 @@ import { ERROR } from "common/error.common";
 /**
  * @description authorize all roles to use the route
  */
-export const authorizeJwt = async (req: Request, res: Response, next: NextFunction) => {
+export const authorizeJwt: RequestHandler = async (req, res, next) => {
   // console.log(req.headers);
 
   const authorization = req.headers["authorization"];
@@ -19,7 +19,8 @@ export const authorizeJwt = async (req: Request, res: Response, next: NextFuncti
   }
 
   if (!token) {
-    return res.status(401).json({ message: ERROR.TOKEN.INVALID });
+    res.status(401).json({ message: ERROR.TOKEN.INVALID });
+    return;
   }
 
   try {

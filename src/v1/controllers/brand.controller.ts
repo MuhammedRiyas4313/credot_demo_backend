@@ -89,10 +89,13 @@ export const getBrands = async (req: Request, res: Response, next: NextFunction)
     // If sort and order parameters are provided, add a $sort stage to the pipeline
     if (sort && sort !== "" && order && order !== "") {
       sortObj[`${sort}`] = order === SORT_ORDER.ASCE ? 1 : -1;
-      pipeline.push({
-        $sort: sortObj,
-      });
+    } else {
+      sortObj.createdAt = -1;
     }
+
+    pipeline.push({
+      $sort: sortObj,
+    });
 
     //get paginated data and total document count
     const paginatedData = await paginateAggregate(Brand, pipeline, req.query);

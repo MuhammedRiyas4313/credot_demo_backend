@@ -17,7 +17,8 @@ export interface IProduct {
   quantity: number;
   isBestSeller: boolean;
   variants: {
-    title: string;
+    name: string; //iPhone 12 Pro max 256GB Deep Purple
+    title: string; //red, blue, green
     image: string;
     price: number;
     mrp: number;
@@ -27,7 +28,7 @@ export interface IProduct {
     createdAt: Date;
     imagesArr: { image: string }[]; //to show multiple images of a variant.
     subvariants: {
-      title: string;
+      title: string; //128 GB, 256 GB, 528 GB
       price: number;
       mrp: number;
       quantity: number;
@@ -59,8 +60,9 @@ const productSchema = new Schema<IProduct>(
     isBestSeller: { type: Boolean, default: false },
     variants: [
       {
-        title: String,
-        image: String,
+        name: String, //iPhone 12 Pro max 256GB Deep Purple
+        title: String, // COLORS like red, silver, blue
+        image: String, //image of variant eg: color
         price: Number,
         mrp: Number,
         quantity: Number, //if variants and no sub variants
@@ -70,7 +72,7 @@ const productSchema = new Schema<IProduct>(
         imagesArr: [{ image: String }],
         subvariants: [
           {
-            title: String,
+            title: String, //128 GB, 256 GB, 528 GB
             price: Number,
             mrp: Number,
             quantity: Number,
