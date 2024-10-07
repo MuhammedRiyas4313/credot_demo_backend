@@ -451,15 +451,7 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
               },
               // If there are subvariants, use the quantity of the largest subvariant quantity
               { $arrayElemAt: ["$variants.subvariants", 0] },
-              {
-                $cond: [
-                  { $and: [{ $ne: ["$variants", null] }, { $ne: ["$variants.quantity", null] }] },
-                  // Else if there are no subvariants, use the variant quantity
-                  "$variants.quantity",
-                  // Else use the main product quantity
-                  "$quantity",
-                ],
-              },
+              null,
             ],
           },
         },
