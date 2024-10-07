@@ -33,7 +33,7 @@ app.use("/cart", authorizeJwt, cartRouter);
 
 app.use("/order", authorizeJwt, orderRouter);
 
-app.use("/user", authorizeJwt, userRouter);
+app.use("/user", userRouter);
 app.use("/address", authorizeJwt, addressRouter);
 
 export default app;
