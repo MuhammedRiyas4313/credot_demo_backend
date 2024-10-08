@@ -99,7 +99,7 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
           } else {
             //check the stock
             if (productVariant.quantity < userCart.itemsArr[itemIndex].quantity + quantity) {
-              response.message = ERROR.PRODUCT.NO_MORE_STOCK(productVariant.quantity);
+              throw new Error(ERROR.PRODUCT.NO_MORE_STOCK(productVariant.quantity));
             } else {
               // Update the quantity and total
               userCart.itemsArr[itemIndex].quantity += quantity;
