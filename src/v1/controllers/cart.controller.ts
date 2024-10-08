@@ -71,7 +71,7 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
 
     let response: any = {};
 
-    if (quantity >= product.maxItemsPerOrder) {
+    if (quantity > product.maxItemsPerOrder) {
       throw new Error(ERROR.PRODUCT.MAX_ITEM_COUNT(product.maxItemsPerOrder));
     } else {
       //check the stock
