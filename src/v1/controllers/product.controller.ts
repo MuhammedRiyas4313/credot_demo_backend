@@ -269,7 +269,7 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
                 $filter: {
                   input: "$cart",
                   as: "cartItem",
-                  cond: { $eq: ["$$cartItem.userId", req.user?.userId] }, // Match the userId with the current user
+                  cond: { $eq: ["$$cartItem.userId", new Types.ObjectId(req.user?.userId)] }, // Match the userId with the current user
                 },
               },
               0,
@@ -283,9 +283,15 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
             $cond: {
               if: {
                 $and: [
-                  { $and: [{ $ne: ["$cart", null] }, { $gt: [{ $size: { $ifNull: ["$cart.itemsArr", []] } }, 0] }] }, // Ensure cart.itemsArr exists and has elements
-                  {
-                    $or: [
+                  { $ne: ["$cart", null] }, // Check if cart is not null
+                  { $gt: [{ $size: { $ifNull: ["$cart.itemsArr", []] } }, 0] }, // Ensure cart.itemsArr exists and has elements
+                ],
+              },
+              then: {
+                $cond: {
+                  if: { $ne: ["$variants._id", null] }, // Check if variants._id exists
+                  then: {
+                    $and: [
                       {
                         $in: [
                           "$variants._id",
@@ -300,10 +306,15 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
                       }, // Check if the main product SKU is in the cart
                     ],
                   },
-                ],
+                  else: {
+                    $in: [
+                      "$sku",
+                      { $map: { input: { $ifNull: ["$cart.itemsArr", []] }, as: "item", in: "$$item.sku" } },
+                    ], // Check only if SKU is in the cart
+                  },
+                },
               },
-              then: true, // If variantId or SKU matches, set inCart to true
-              else: false, // Otherwise, set it to false
+              else: false, // If cart is null or empty, set inCart to false
             },
           },
         },
@@ -440,6 +451,7 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
               },
             ],
           },
+
           subvariantId: {
             $cond: [
               {
@@ -481,7 +493,7 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
 
     //get paginated data and total document count
     const paginatedData = await paginateAggregate(Product, pipeline, req.query);
-
+    console.log(paginatedData, "PAGINATED DATA");
     res
       .status(200)
       .json({ message: MESSAGE.PRODUCT.ALLPRODUCTS, data: paginatedData.data, total: paginatedData.total });
