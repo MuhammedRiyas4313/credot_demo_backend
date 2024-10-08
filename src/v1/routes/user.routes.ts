@@ -14,7 +14,7 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-router.get("/", authorizeJwt, getUsers);
+router.get("/", getUsers);
 router.get("/:id", authorizeJwt, getUserById);
 router.put("/:id", authorizeJwt, updateUser);
 router.patch("/:id", authorizeJwt, updateUserStatus);

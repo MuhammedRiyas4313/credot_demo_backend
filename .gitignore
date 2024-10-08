@@ -54,6 +54,10 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
+public/uploads
+
+public/
+
 # Yarn Integrity file
 .yarn-integrity
 
@@ -65,7 +69,6 @@ typings/
 .next
 
 dist/
-public/uploads/
 tsconfig.tsbuildinfo
 
 trash.js
