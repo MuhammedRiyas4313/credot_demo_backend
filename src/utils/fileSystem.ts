@@ -10,7 +10,6 @@ export const storeFileAndReturnNameBase64 = async (base64: string) => {
         console.error(err);
         reject(err);
       }
-      console.log();
       resolve(filename);
     });
   });
