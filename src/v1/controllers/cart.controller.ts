@@ -71,6 +71,15 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
 
     let response: any = {};
 
+    if (quantity >= product.maxItemsPerOrder) {
+      throw new Error(ERROR.PRODUCT.MAX_ITEM_COUNT(product.maxItemsPerOrder));
+    } else {
+      //check the stock
+      if (productVariant.quantity < quantity) {
+        throw new Error(ERROR.PRODUCT.NO_MORE_STOCK(productVariant.quantity));
+      }
+    }
+
     if (userCart) {
       // If the cart exists, check if the item is already in the cart
       let itemIndex = userCart.itemsArr.findIndex((item) => {
@@ -134,6 +143,7 @@ export const addToCart = async (req: Request, res: Response, next: NextFunction)
       userCart.itemsCount = userCart.itemsArr.length;
     } else {
       // If no cart exists, create a new one
+
       userCart = new Cart({
         userId,
         itemsArr: [{ sku, price, mrp, quantity, total: itemTotal, variantId, subvariantId, createdAt: new Date() }],
