@@ -493,7 +493,6 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
 
     //get paginated data and total document count
     const paginatedData = await paginateAggregate(Product, pipeline, req.query);
-    console.log(paginatedData, "PAGINATED DATA");
     res
       .status(200)
       .json({ message: MESSAGE.PRODUCT.ALLPRODUCTS, data: paginatedData.data, total: paginatedData.total });
@@ -505,7 +504,6 @@ export const getProductsForUsers = async (req: Request, res: Response, next: Nex
 /* For user  */
 export const getProductByIdForUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log("GET PRODUCT BY ID FOR USER 1");
     const { id } = req.params;
 
     const existProduct = await Product.findById(id).lean().exec();

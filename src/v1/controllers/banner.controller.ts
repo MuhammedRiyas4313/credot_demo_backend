@@ -117,8 +117,6 @@ export const updateBanner = async (req: Request, res: Response, next: NextFuncti
 
     let { imagesArr, status } = req.body;
 
-    console.log(req.body, "BODY");
-
     const requiredFields = {
       Images: imagesArr?.length ? imagesArr : undefined,
     };
@@ -140,8 +138,6 @@ export const updateBanner = async (req: Request, res: Response, next: NextFuncti
 
     banner.status = status;
     banner.imagesArr = imagesArr;
-
-    console.log(banner, "NEW BANNER");
 
     await banner.save();
 
