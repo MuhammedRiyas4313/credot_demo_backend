@@ -68,3 +68,4 @@ tsconfig.tsbuildinfo
 
 trash.js
 .vscode
+.vercel
