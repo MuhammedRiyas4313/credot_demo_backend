@@ -157,7 +157,7 @@ export const udpateOrderStatus = async (req: Request, res: Response, next: NextF
       await updateInventory(status, order);
     }
 
-    await Order.findByIdAndUpdate(id, { $set: { status: status } })
+    await Order.findByIdAndUpdate(id, { $set: { status: status, remark: remark } })
       .lean()
       .exec();
 
