@@ -65,7 +65,6 @@ typings/
 
 dist/
 tsconfig.tsbuildinfo
-
 trash.js
 .vscode
 .vercel
